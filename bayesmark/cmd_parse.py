@@ -184,7 +184,8 @@ def load_rev_number():
 
     # Check coherence of what we found
     if (rev_repo is None) and (rev_file is None):
-        raise RuntimeError("Must specify version.py if not inside a git repo.")
+        return 'rapids'
+        #raise RuntimeError("Must specify version.py if not inside a git repo.")
     if (rev_repo is not None) and (rev_file is not None):
         assert rev_repo == rev_file, "Rev file %s does not match rev git %s" % (rev_file, rev_repo)
 

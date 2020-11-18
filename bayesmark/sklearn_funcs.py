@@ -33,6 +33,9 @@ import warnings
 from abc import ABC, abstractmethod
 
 import numpy as np
+from cuml.svm import SVC as SVCcuml
+from cuml.svm import SVR as SVRcuml
+
 from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor, RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LogisticRegression, Ridge
 from sklearn.metrics import get_scorer
@@ -133,6 +136,7 @@ linear_cfg = {
 MODELS_CLF = {
     "kNN": (KNeighborsClassifier, {}, knn_cfg),
     "SVM": (SVC, {"kernel": "rbf", "probability": True}, svm_cfg),
+    "SVMcuml": (SVCcuml, {"kernel": "rbf", "probability": True}, svm_cfg),
     "DT": (DecisionTreeClassifier, {"max_leaf_nodes": None}, dt_cfg),
     "RF": (RandomForestClassifier, {"n_estimators": 10, "max_leaf_nodes": None}, rf_cfg),
     "MLP-adam": (MLPClassifier, {"solver": "adam", "early_stopping": True}, mlp_adam_cfg),
@@ -182,6 +186,7 @@ linear_cfg_reg = {
 MODELS_REG = {
     "kNN": (KNeighborsRegressor, {}, knn_cfg),
     "SVM": (SVR, {"kernel": "rbf"}, svm_cfg),
+    "SVMcuml": (SVRcuml, {"kernel": "rbf"}, svm_cfg),
     "DT": (DecisionTreeRegressor, {"max_leaf_nodes": None}, dt_cfg),
     "RF": (RandomForestRegressor, {"n_estimators": 10, "max_leaf_nodes": None}, rf_cfg),
     "MLP-adam": (MLPRegressor, {"solver": "adam", "early_stopping": True}, mlp_adam_cfg),
