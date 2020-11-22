@@ -31,6 +31,7 @@ import os.path
 import pickle as pkl
 import warnings
 from abc import ABC, abstractmethod
+from time import time
 
 import numpy as np
 from cuml.svm import SVC as SVCcuml
@@ -311,6 +312,7 @@ class SklearnModel(TestFunction):
         )
         self.scorer = get_scorer(SklearnModel._METRIC_MAP[metric])
         self.n_jobs = n_jobs
+        self.cv_score = cross_val_score
 
     def evaluate(self, params):
         """Evaluate the sklearn CV objective at a particular parameter setting.
@@ -325,6 +327,7 @@ class SklearnModel(TestFunction):
         cv_loss : float
             Average loss over CV splits for sklearn model when tested using the settings in params.
         """
+        start = time()
         params = dict(params)  # copy to avoid modification of original
         params.update(self.fixed_params)  # add in fixed params
 
@@ -334,10 +337,12 @@ class SklearnModel(TestFunction):
         assert np.all(np.isfinite(self.data_X)), "all features must be finite"
         assert np.all(np.isfinite(self.data_y)), "all targets must be finite"
 
+        s1 = time()
         # Do the x-val, ignore user warn since we expect BO to try weird stuff
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
-            S = cross_val_score(clf, self.data_X, self.data_y, scoring=self.scorer, cv=CV_SPLITS, n_jobs=self.n_jobs)
+            S = self.cv_score(clf, self.data_X, self.data_y, scoring=self.scorer, cv=CV_SPLITS, n_jobs=self.n_jobs)
+        d1 = time() - s1
         # Take the mean score across all x-val splits
         cv_score = np.mean(S)
 
@@ -359,6 +364,8 @@ class SklearnModel(TestFunction):
         assert isinstance(generalization_loss, float)
 
         # For now, score with same objective. We can later add generalization error
+        duration = time() - start
+        print(f"eval duration: {duration:.1f} seconds cv: {d1:.1f} seconds")
         return cv_loss, generalization_loss
 
     @staticmethod

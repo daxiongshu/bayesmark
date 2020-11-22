@@ -22,6 +22,20 @@ def cuml_get_scorer(metric, estimator, X, y):
         return accuracy_score(y, yp)
     else:
         assert 0, "unknown metric"
+        
+def cuml_cross_val_score(clf, X, y, scoring, cv, n_jobs):
+    ids = cp.arange(X.shape[0])
+    cp.random.shuffle(ids)
+    score = []
+    for i in range(cv):
+        train_index = ids%cv != i
+        test_index = ids%cv == i
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+        
+        clf.fit(X_train, y_train)
+        score.append(scoring(clf, X_test, y_test))
+    return score
 
 class CumlModel(SklearnModel):
             
@@ -36,3 +50,4 @@ class CumlModel(SklearnModel):
 
         self.scorer = partial(cuml_get_scorer, metric)
         self.n_jobs = 1
+        self.cv_score = cuml_cross_val_score
