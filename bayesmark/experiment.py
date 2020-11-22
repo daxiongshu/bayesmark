@@ -35,6 +35,7 @@ from bayesmark.np_util import argmin_2d, linear_rescale, random_seed
 from bayesmark.serialize import XRSerializer
 from bayesmark.signatures import analyze_signature_pair, get_func_signature
 from bayesmark.sklearn_funcs import SklearnModel, SklearnSurrogate
+from bayesmark.cuml_funcs import CumlModel
 from bayesmark.space import JointSpace
 from bayesmark.util import chomp, str_join_safe
 
@@ -69,6 +70,8 @@ def _build_test_problem(model_name, dataset, scorer, path):
         # Requires IO to test these, so will add the pargma here. Maybe that points towards a possible design change.
         model_name = chomp(model_name, "-surr")  # pragma: io
         prob = SklearnSurrogate(model_name, dataset, scorer, path=path)  # pragma: io
+    elif model_name.endswith("cuml"):
+        prob = CumlModel(model_name, dataset, scorer, data_root=path)
     else:
         prob = SklearnModel(model_name, dataset, scorer, data_root=path)
     return prob

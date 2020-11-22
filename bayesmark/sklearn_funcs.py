@@ -255,7 +255,7 @@ class SklearnModel(TestFunction):
     # This can be static and constant for now
     objective_names = (VISIBLE_TO_OPT, "generalization")
 
-    def __init__(self, model, dataset, metric, shuffle_seed=0, data_root=None):
+    def __init__(self, model, dataset, metric, shuffle_seed=0, data_root=None, n_jobs=None):
         """Build class that wraps sklearn classifier/regressor CV score for use as an objective function.
 
         Parameters
@@ -310,6 +310,7 @@ class SklearnModel(TestFunction):
             problem_type,
         )
         self.scorer = get_scorer(SklearnModel._METRIC_MAP[metric])
+        self.n_jobs = n_jobs
 
     def evaluate(self, params):
         """Evaluate the sklearn CV objective at a particular parameter setting.
@@ -336,7 +337,7 @@ class SklearnModel(TestFunction):
         # Do the x-val, ignore user warn since we expect BO to try weird stuff
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)
-            S = cross_val_score(clf, self.data_X, self.data_y, scoring=self.scorer, cv=CV_SPLITS)
+            S = cross_val_score(clf, self.data_X, self.data_y, scoring=self.scorer, cv=CV_SPLITS, n_jobs=self.n_jobs)
         # Take the mean score across all x-val splits
         cv_score = np.mean(S)
 
