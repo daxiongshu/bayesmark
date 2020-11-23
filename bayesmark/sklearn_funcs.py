@@ -34,6 +34,7 @@ from abc import ABC, abstractmethod
 from time import time
 
 import numpy as np
+
 from cuml.svm import SVC as cumlSVC
 from cuml.svm import SVR as cumlSVR
 from cuml import LogisticRegression as cumlLogisticRegression

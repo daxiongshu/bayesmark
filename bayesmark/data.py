@@ -18,11 +18,11 @@ from enum import IntEnum, auto
 import numpy as np
 import pandas as pd  # only needed for csv reader, maybe try something else
 from sklearn import datasets
+from bayesmark import big_datasets
 
-from bayesmark.constants import DATA_LOADER_NAMES, SCORERS_CLF, SCORERS_REG
+from bayesmark.constants import BIG_DATA_LOADER_NAMES, DATA_LOADER_NAMES, SCORERS_CLF, SCORERS_REG
 from bayesmark.path_util import join_safe_r
 from bayesmark.stats import robust_standardize
-
 
 class ProblemType(IntEnum):
     """The different problem types we consider. Currently, just regression (`reg`) and classification (`clf`).
@@ -38,10 +38,16 @@ DATA_LOADERS = {
     "wine": (datasets.load_wine, ProblemType.clf),
     "breast": (datasets.load_breast_cancer, ProblemType.clf),
     "boston": (datasets.load_boston, ProblemType.reg),
-    "diabetes": (datasets.load_diabetes, ProblemType.reg),
+    "diabetes": (datasets.load_diabetes, ProblemType.reg),   
 }
 
 assert sorted(DATA_LOADERS.keys()) == sorted(DATA_LOADER_NAMES)
+
+BIG_DATA_LOADERS = {
+    "mnist": (big_datasets.load_mnist, ProblemType.clf),
+}
+
+assert sorted(BIG_DATA_LOADERS.keys()) == sorted(BIG_DATA_LOADER_NAMES)
 
 # Arguably, this could go in constants, but doesn't cause extra imports being here.
 METRICS_LOOKUP = {ProblemType.clf: SCORERS_CLF, ProblemType.reg: SCORERS_REG}
@@ -62,6 +68,10 @@ def get_problem_type(dataset_name):
     """
     if dataset_name in DATA_LOADERS:
         _, problem_type = DATA_LOADERS[dataset_name]
+        return problem_type
+    
+    if dataset_name in BIG_DATA_LOADERS:
+        _, problem_type = BIG_DATA_LOADERS[dataset_name]
         return problem_type
 
     # Maybe we can come up with a better system, but for now let's use a convention based on the naming of the csv file.
@@ -152,14 +162,20 @@ def load_data(dataset_name, data_root=None):  # pragma: io
     if dataset_name in DATA_LOADERS:
         loader_f, problem_type = DATA_LOADERS[dataset_name]
         data, target = loader_f(return_X_y=True)
+    elif dataset_name in BIG_DATA_LOADERS:
+        loader_f, problem_type = BIG_DATA_LOADERS[dataset_name]
+        data, target = loader_f(data_root)
     else:  # try to load as custom csv
         assert data_root is not None, "data root cannot be None when custom csv requested."
         data, target, problem_type = _csv_loader(dataset_name, return_X_y=True, data_root=data_root)
+    # quickly try large data
     #data, target = make_larger(data, target)
     return data, target, problem_type
 
 
 def make_larger(X, y, N=5):
+    """ duplicate data by N timex
+    """
     X = np.vstack([X for _ in range(N)])
     y = np.concatenate([y for _ in range(N)])
     return X, y
