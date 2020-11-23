@@ -34,8 +34,10 @@ from abc import ABC, abstractmethod
 from time import time
 
 import numpy as np
-from cuml.svm import SVC as SVCcuml
-from cuml.svm import SVR as SVRcuml
+from cuml.svm import SVC as cumlSVC
+from cuml.svm import SVR as cumlSVR
+from cuml import LogisticRegression as cumlLogisticRegression
+from cuml import Ridge as cumlRidge
 
 from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor, RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LogisticRegression, Ridge
@@ -54,6 +56,9 @@ from bayesmark.util import str_join_safe
 
 # Using 3 would be faster, but 5 is the most realistic CV split (5-fold)
 CV_SPLITS = 5
+
+def without(d, bad):
+    return {k:v for k,v in d.items() if k!=bad and k not in bad}
 
 # We should add cat variables into some of these configurations but a lot of
 # the wrappers for the BO methods really have trouble with cat types.
@@ -137,7 +142,7 @@ linear_cfg = {
 MODELS_CLF = {
     "kNN": (KNeighborsClassifier, {}, knn_cfg),
     "SVM": (SVC, {"kernel": "rbf", "probability": True}, svm_cfg),
-    "SVMcuml": (SVCcuml, {"kernel": "rbf", "probability": True}, svm_cfg),
+    "SVM-cuml": (cumlSVC, {"kernel": "rbf", "probability": True}, svm_cfg),
     "DT": (DecisionTreeClassifier, {"max_leaf_nodes": None}, dt_cfg),
     "RF": (RandomForestClassifier, {"n_estimators": 10, "max_leaf_nodes": None}, rf_cfg),
     "MLP-adam": (MLPClassifier, {"solver": "adam", "early_stopping": True}, mlp_adam_cfg),
@@ -156,6 +161,11 @@ MODELS_CLF = {
         LogisticRegression,
         {"penalty": "l2", "fit_intercept": True, "solver": "liblinear", "multi_class": "ovr"},
         linear_cfg,
+    ),
+    "linear-cuml": (
+        cumlLogisticRegression,
+        {"penalty": "l2", "fit_intercept": True, "solver": "qn"},
+        without(linear_cfg, ["intercept_scaling"]),
     ),
 }
 
@@ -187,7 +197,7 @@ linear_cfg_reg = {
 MODELS_REG = {
     "kNN": (KNeighborsRegressor, {}, knn_cfg),
     "SVM": (SVR, {"kernel": "rbf"}, svm_cfg),
-    "SVMcuml": (SVRcuml, {"kernel": "rbf"}, svm_cfg),
+    "SVM-cuml": (cumlSVR, {"kernel": "rbf"}, svm_cfg),
     "DT": (DecisionTreeRegressor, {"max_leaf_nodes": None}, dt_cfg),
     "RF": (RandomForestRegressor, {"n_estimators": 10, "max_leaf_nodes": None}, rf_cfg),
     "MLP-adam": (MLPRegressor, {"solver": "adam", "early_stopping": True}, mlp_adam_cfg),
@@ -205,6 +215,7 @@ MODELS_REG = {
     "ada": (AdaBoostRegressor, {}, ada_cfg_reg),
     "lasso": (Lasso, {}, lasso_cfg_reg),
     "linear": (Ridge, {"solver": "auto"}, linear_cfg_reg),
+    "linear-cuml": (cumlRidge, {"solver": "sig"}, without(linear_cfg_reg, ['max_iter', 'tol'])),
 }
 
 # If both classifiers and regressors match MODEL_NAMES then the experiment
@@ -360,7 +371,8 @@ class SklearnModel(TestFunction):
         # Unbox to basic float to keep it simple
         cv_loss = cv_loss.item()
         assert isinstance(cv_loss, float)
-        generalization_loss = generalization_loss.item()
+        if hasattr(generalization_loss, 'item'):
+            generalization_loss = generalization_loss.item()
         assert isinstance(generalization_loss, float)
 
         # For now, score with same objective. We can later add generalization error

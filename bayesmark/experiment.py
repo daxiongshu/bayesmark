@@ -70,7 +70,7 @@ def _build_test_problem(model_name, dataset, scorer, path):
         # Requires IO to test these, so will add the pargma here. Maybe that points towards a possible design change.
         model_name = chomp(model_name, "-surr")  # pragma: io
         prob = SklearnSurrogate(model_name, dataset, scorer, path=path)  # pragma: io
-    elif model_name.endswith("cuml"):
+    elif model_name.endswith("-cuml"):
         prob = CumlModel(model_name, dataset, scorer, data_root=path)
     else:
         prob = SklearnModel(model_name, dataset, scorer, data_root=path)
@@ -146,6 +146,7 @@ def run_study(optimizer, test_problem, n_calls, n_suggestions, n_obj=1, callback
 
         for jj, next_point in enumerate(next_points):
             tt = time()
+            #print("iter",ii,"batch",jj)
             try:
                 f_current_eval = test_problem.evaluate(next_point)
             except Exception as e:

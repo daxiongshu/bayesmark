@@ -155,4 +155,11 @@ def load_data(dataset_name, data_root=None):  # pragma: io
     else:  # try to load as custom csv
         assert data_root is not None, "data root cannot be None when custom csv requested."
         data, target, problem_type = _csv_loader(dataset_name, return_X_y=True, data_root=data_root)
+    #data, target = make_larger(data, target)
     return data, target, problem_type
+
+
+def make_larger(X, y, N=5):
+    X = np.vstack([X for _ in range(N)])
+    y = np.concatenate([y for _ in range(N)])
+    return X, y
