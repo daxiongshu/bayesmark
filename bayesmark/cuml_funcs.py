@@ -6,6 +6,7 @@ from cuml.metrics.regression import mean_absolute_error, mean_squared_error
 from cuml.metrics.accuracy import accuracy_score
 from cuml.metrics import log_loss
 
+
 def cuml_get_scorer(metric, estimator, X, y):
     
     if metric == 'mae':
@@ -34,7 +35,10 @@ def cuml_cross_val_score(clf, X, y, scoring, cv, n_jobs):
         y_train, y_test = y[train_index], y[test_index]
         
         clf.fit(X_train, y_train)
-        score.append(scoring(clf, X_test, y_test))
+        s = scoring(clf, X_test, y_test)
+        if hasattr(s, 'item'):
+            s = s.item()
+        score.append(s)
     return score
 
 class CumlModel(SklearnModel):
@@ -43,10 +47,10 @@ class CumlModel(SklearnModel):
     def __init__(self, model, dataset, metric, shuffle_seed=0, data_root=None):
         super().__init__(model, dataset, metric,
                          shuffle_seed=shuffle_seed, data_root=data_root)
-        self.data_X = cp.asarray(self.data_X)
-        self.data_Xt = cp.asarray(self.data_Xt)
-        self.data_y  = cp.asarray(self.data_y)
-        self.data_yt = cp.asarray(self.data_yt)
+        self.data_X = cp.asarray(self.data_X, dtype='float32')
+        self.data_Xt = cp.asarray(self.data_Xt, dtype='float32')
+        self.data_y  = cp.asarray(self.data_y, dtype='float32')
+        self.data_yt = cp.asarray(self.data_yt, dtype='float32')
 
         self.scorer = partial(cuml_get_scorer, metric)
         self.n_jobs = 1

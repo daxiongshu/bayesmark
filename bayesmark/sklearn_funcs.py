@@ -27,6 +27,9 @@ The kwarg dict is `fixed_param_dict` + `search_param_dict`. The
 `search_param_api_dict`. See the API description for information on setting up
 the `search_param_api_dict`.
 """
+import warnings
+warnings.filterwarnings("ignore")
+
 import os.path
 import pickle as pkl
 import warnings
@@ -39,6 +42,12 @@ from cuml.svm import SVC as cumlSVC
 from cuml.svm import SVR as cumlSVR
 from cuml import LogisticRegression as cumlLogisticRegression
 from cuml import Ridge as cumlRidge
+from cuml import Lasso as cumlLasso
+
+from cuml.neighbors import KNeighborsClassifier as cumlKNeighborsClassifier
+from cuml.neighbors import KNeighborsRegressor as cumlKNeighborsRegressor
+from cuml.ensemble import RandomForestClassifier as cumlRandomForestClassifier
+from cuml.ensemble import RandomForestRegressor as cumlRandomForestRegressor 
 
 from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor, RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LogisticRegression, Ridge
@@ -142,10 +151,12 @@ linear_cfg = {
 
 MODELS_CLF = {
     "kNN": (KNeighborsClassifier, {}, knn_cfg),
+    "kNN-cuml": (cumlKNeighborsClassifier, {}, without(knn_cfg, ['p'])),
     "SVM": (SVC, {"kernel": "rbf", "probability": True}, svm_cfg),
     "SVM-cuml": (cumlSVC, {"kernel": "rbf", "probability": True}, svm_cfg),
     "DT": (DecisionTreeClassifier, {"max_leaf_nodes": None}, dt_cfg),
     "RF": (RandomForestClassifier, {"n_estimators": 10, "max_leaf_nodes": None}, rf_cfg),
+    "RF-cuml": (cumlRandomForestClassifier, {"n_estimators": 10, "max_leaves": -1}, without(rf_cfg, ["min_samples_split", "min_samples_leaf", "min_weight_fraction_leaf"])),
     "MLP-adam": (MLPClassifier, {"solver": "adam", "early_stopping": True}, mlp_adam_cfg),
     "MLP-sgd": (
         MLPClassifier,
@@ -158,6 +169,11 @@ MODELS_CLF = {
         {"penalty": "l1", "fit_intercept": True, "solver": "liblinear", "multi_class": "ovr"},
         lasso_cfg,
     ),
+    "lasso-cuml": (
+        cumlLogisticRegression,
+        {"penalty": "l1", "fit_intercept": True, "solver": "qn", "max_iter":100},
+        without(lasso_cfg, ["intercept_scaling"]),
+    ),
     "linear": (
         LogisticRegression,
         {"penalty": "l2", "fit_intercept": True, "solver": "liblinear", "multi_class": "ovr"},
@@ -165,9 +181,10 @@ MODELS_CLF = {
     ),
     "linear-cuml": (
         cumlLogisticRegression,
-        {"penalty": "l2", "fit_intercept": True, "solver": "qn"},
+        {"penalty": "l2", "fit_intercept": True, "solver": "qn", "max_iter":100},
         without(linear_cfg, ["intercept_scaling"]),
     ),
+    
 }
 
 # For now, we will assume the default is to go thru all classifiers
@@ -197,10 +214,12 @@ linear_cfg_reg = {
 
 MODELS_REG = {
     "kNN": (KNeighborsRegressor, {}, knn_cfg),
+    "kNN-cuml": (cumlKNeighborsRegressor, {}, without(knn_cfg, ['p'])),
     "SVM": (SVR, {"kernel": "rbf"}, svm_cfg),
     "SVM-cuml": (cumlSVR, {"kernel": "rbf"}, svm_cfg),
     "DT": (DecisionTreeRegressor, {"max_leaf_nodes": None}, dt_cfg),
     "RF": (RandomForestRegressor, {"n_estimators": 10, "max_leaf_nodes": None}, rf_cfg),
+    "RF-cuml": (cumlRandomForestRegressor, {"n_estimators": 10, "max_leaves": -1}, without(rf_cfg, ["min_samples_split", "min_samples_leaf", "min_weight_fraction_leaf"])),
     "MLP-adam": (MLPRegressor, {"solver": "adam", "early_stopping": True}, mlp_adam_cfg),
     "MLP-sgd": (
         MLPRegressor,  # regression crashes often with relu
@@ -215,8 +234,10 @@ MODELS_REG = {
     ),
     "ada": (AdaBoostRegressor, {}, ada_cfg_reg),
     "lasso": (Lasso, {}, lasso_cfg_reg),
+    "lasso-cuml": (cumlLasso, {}, without(lasso_cfg_reg, ['positive'])),
     "linear": (Ridge, {"solver": "auto"}, linear_cfg_reg),
-    "linear-cuml": (cumlRidge, {"solver": "sig"}, without(linear_cfg_reg, ['max_iter', 'tol'])),
+    "linear-cuml": (cumlRidge, {}, without(linear_cfg_reg, ['max_iter', 'tol'])),
+    
 }
 
 # If both classifiers and regressors match MODEL_NAMES then the experiment
@@ -378,7 +399,7 @@ class SklearnModel(TestFunction):
 
         # For now, score with same objective. We can later add generalization error
         duration = time() - start
-        print(f"eval duration: {duration:.1f} seconds cv: {d1:.1f} seconds")
+        #print(f"eval duration: {duration:.1f} seconds cv: {d1:.1f} seconds")
         return cv_loss, generalization_loss
 
     @staticmethod
