@@ -49,6 +49,9 @@ from cuml.neighbors import KNeighborsRegressor as cumlKNeighborsRegressor
 from cuml.ensemble import RandomForestClassifier as cumlRandomForestClassifier
 from cuml.ensemble import RandomForestRegressor as cumlRandomForestRegressor 
 
+from bayesmark.MLP_rapids import MLPClassifier as cumlMLPClassifier
+from bayesmark.MLP_rapids import MLPRegressor as cumlMLPRegressor
+
 from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor, RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LogisticRegression, Ridge
 from sklearn.metrics import get_scorer
@@ -119,6 +122,9 @@ mlp_adam_cfg = {
     "epsilon": {"type": "real", "space": "log", "range": (1e-9, 1e-6)},
 }
 
+cuml_mlp_adam_cfg = mlp_adam_cfg.copy()
+cuml_mlp_adam_cfg["batch_size"] = {"type": "int", "space": "linear", "range": (256, 1024)}
+
 # MLP with SGD
 mlp_sgd_cfg = {
     "hidden_layer_sizes": {"type": "int", "space": "linear", "range": (50, 200)},
@@ -130,6 +136,9 @@ mlp_sgd_cfg = {
     "momentum": {"type": "real", "space": "logit", "range": (0.001, 0.999)},
     "validation_fraction": {"type": "real", "space": "logit", "range": (0.1, 0.9)},
 }
+
+cuml_mlp_sgd_cfg = mlp_sgd_cfg.copy()
+cuml_mlp_sgd_cfg["batch_size"] = {"type": "int", "space": "linear", "range": (256, 1024)}
 
 # AdaBoostClassifier
 ada_cfg = {
@@ -158,10 +167,16 @@ MODELS_CLF = {
     "RF": (RandomForestClassifier, {"n_estimators": 10, "max_leaf_nodes": None}, rf_cfg),
     "RF-cuml": (cumlRandomForestClassifier, {"n_estimators": 10, "max_leaves": -1}, without(rf_cfg, ["min_samples_split", "min_samples_leaf", "min_weight_fraction_leaf"])),
     "MLP-adam": (MLPClassifier, {"solver": "adam", "early_stopping": True}, mlp_adam_cfg),
+    "MLP-adam-cuml": (cumlMLPClassifier, {"solver": "adam", "early_stopping": True}, cuml_mlp_adam_cfg),
     "MLP-sgd": (
         MLPClassifier,
         {"solver": "sgd", "early_stopping": True, "learning_rate": "invscaling", "nesterovs_momentum": True},
         mlp_sgd_cfg,
+    ),
+    "MLP-sgd-cuml": (
+        cumlMLPClassifier,
+        {"solver": "sgd", "early_stopping": True, "learning_rate": "invscaling", "nesterovs_momentum": True},
+        cuml_mlp_sgd_cfg,
     ),
     "ada": (AdaBoostClassifier, {}, ada_cfg),
     "lasso": (
@@ -221,6 +236,7 @@ MODELS_REG = {
     "RF": (RandomForestRegressor, {"n_estimators": 10, "max_leaf_nodes": None}, rf_cfg),
     "RF-cuml": (cumlRandomForestRegressor, {"n_estimators": 10, "max_leaves": -1}, without(rf_cfg, ["min_samples_split", "min_samples_leaf", "min_weight_fraction_leaf"])),
     "MLP-adam": (MLPRegressor, {"solver": "adam", "early_stopping": True}, mlp_adam_cfg),
+    "MLP-adam-cuml": (cumlMLPRegressor, {"solver": "adam", "early_stopping": True}, cuml_mlp_adam_cfg),
     "MLP-sgd": (
         MLPRegressor,  # regression crashes often with relu
         {
@@ -231,6 +247,17 @@ MODELS_REG = {
             "nesterovs_momentum": True,
         },
         mlp_sgd_cfg,
+    ),
+    "MLP-sgd-cuml": (
+        cumlMLPRegressor,  # regression crashes often with relu
+        {
+            "activation": "tanh",
+            "solver": "sgd",
+            "early_stopping": True,
+            "learning_rate": "invscaling",
+            "nesterovs_momentum": True,
+        },
+        cuml_mlp_sgd_cfg,
     ),
     "ada": (AdaBoostRegressor, {}, ada_cfg_reg),
     "lasso": (Lasso, {}, lasso_cfg_reg),
