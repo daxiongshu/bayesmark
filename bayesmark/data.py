@@ -45,6 +45,7 @@ assert sorted(DATA_LOADERS.keys()) == sorted(DATA_LOADER_NAMES)
 
 BIG_DATA_LOADERS = {
     "mnist": (big_datasets.load_mnist, ProblemType.clf),
+    
 }
 
 assert sorted(BIG_DATA_LOADERS.keys()) == sorted(BIG_DATA_LOADER_NAMES)

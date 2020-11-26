@@ -8,21 +8,21 @@ from cuml.metrics import log_loss
 
 
 def cuml_get_scorer(metric, estimator, X, y):
+    yp = estimator.predict_proba(X) if metric == 'nll' else estimator.predict(X)
+    if isinstance(yp, cp.ndarray) == False:
+        yp = cp.asarray(yp)
     if metric == 'mae':
-        yp = estimator.predict(X)
         return -mean_absolute_error(y, yp)
     elif metric == 'mse':
-        yp = estimator.predict(X)
         return -mean_squared_error(y, yp)
     elif metric == 'nll':
-        yp = estimator.predict_proba(X)
         return -log_loss(y, yp)
     elif metric == 'acc':
-        yp = estimator.predict(X)
         return accuracy_score(y, yp)
     else:
         assert 0, "unknown metric"
-        
+
+
 def cuml_cross_val_score(clf, X, y, scoring, cv, n_jobs):
     ids = cp.arange(X.shape[0])
     cp.random.shuffle(ids)
@@ -83,8 +83,9 @@ class CumlModel(SklearnModel):
                          shuffle_seed=shuffle_seed, data_root=data_root)
         self.data_X = cp.asarray(self.data_X, dtype='float32')
         self.data_Xt = cp.asarray(self.data_Xt, dtype='float32')
-        self.data_y  = cp.asarray(self.data_y, dtype='float32')
-        self.data_yt = cp.asarray(self.data_yt, dtype='float32')
+        dtype = 'int32' if metric in ['nll', 'acc'] else 'float32'
+        self.data_y  = cp.asarray(self.data_y, dtype=dtype)
+        self.data_yt = cp.asarray(self.data_yt, dtype=dtype)
 
         if model == 'SVM-cuml':
             self.norm = Normalizer()

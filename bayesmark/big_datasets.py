@@ -12,7 +12,8 @@ def load_mnist(data_root):
     X = df.drop('target', axis=1).values/255
     y = df['target'].values
 
-    ids = cp.arange(X.shape[0])
-    cp.random.shuffle(ids)
-    ids = ids[:X.shape[0]//10]
-    return X[ids].get(), y[ids].get()
+    return X.get(), y.get()
+
+def load_california_housing(data_root):
+    path = f"{data_root}/"
+    

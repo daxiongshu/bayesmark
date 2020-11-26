@@ -49,8 +49,11 @@ from cuml.neighbors import KNeighborsRegressor as cumlKNeighborsRegressor
 from cuml.ensemble import RandomForestClassifier as cumlRandomForestClassifier
 from cuml.ensemble import RandomForestRegressor as cumlRandomForestRegressor 
 
-from bayesmark.MLP_rapids import MLPClassifier as cumlMLPClassifier
-from bayesmark.MLP_rapids import MLPRegressor as cumlMLPRegressor
+from bayesmark.MLP_cuml import MLPClassifier as cumlMLPClassifier
+from bayesmark.MLP_cuml import MLPRegressor as cumlMLPRegressor
+
+from bayesmark.xgb_cuml import XGBClassifier as cumlXGBClassifier
+from bayesmark.xgb_cuml import XGBRegressor as cumlXGBRegressor
 
 from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor, RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LogisticRegression, Ridge
@@ -60,6 +63,7 @@ from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from xgboost import XGBRegressor, XGBClassifier
 
 from bayesmark.constants import ARG_DELIM, METRICS, MODEL_NAMES, VISIBLE_TO_OPT
 from bayesmark.data import METRICS_LOOKUP, ProblemType, get_problem_type, load_data
@@ -158,6 +162,15 @@ linear_cfg = {
     "intercept_scaling": {"type": "real", "space": "log", "range": (1e-2, 1e2)},
 }
 
+# xgb
+xgb_cfg = {
+    #'n_estimators': {"type": "int", "space": "log", "range": (10, 1000)},
+    'max_depth': {"type": "int", "space": "linear", "range": (1, 10)},
+    'learning_rate': {"type": "real", "space": "linear", "range": (0.05, 0.5)},
+    'subsample': {"type": "real", "space": "linear", "range": (0.1, 1.0)},
+    'colsample_bytree': {"type": "real", "space": "linear", "range": (0.1, 1.0)},
+}
+
 MODELS_CLF = {
     "kNN": (KNeighborsClassifier, {}, knn_cfg),
     "kNN-cuml": (cumlKNeighborsClassifier, {}, without(knn_cfg, ['p'])),
@@ -199,7 +212,15 @@ MODELS_CLF = {
         {"penalty": "l2", "fit_intercept": True, "solver": "qn", "max_iter":100},
         without(linear_cfg, ["intercept_scaling"]),
     ),
-    
+ 
+    "xgb": (XGBClassifier, {'n_estimators': 100,
+                            'validation_fraction': 0
+                           }, xgb_cfg),
+    "xgb-cuml": (cumlXGBClassifier, {'tree_method': 'gpu_hist', 
+                                 'predictor': 'gpu_predictor',
+                                 'n_estimators': 100,
+                                 'validation_fraction': 0
+                                }, xgb_cfg),
 }
 
 # For now, we will assume the default is to go thru all classifiers
@@ -265,6 +286,14 @@ MODELS_REG = {
     "linear": (Ridge, {"solver": "auto"}, linear_cfg_reg),
     "linear-cuml": (cumlRidge, {}, without(linear_cfg_reg, ['max_iter', 'tol'])),
     
+    "xgb": (XGBRegressor, {'n_estimators': 100,
+                           'validation_fraction': 0
+                          }, xgb_cfg),
+    "xgb-cuml": (cumlXGBRegressor, {'tree_method': 'gpu_hist', 
+                                'predictor': 'gpu_predictor',
+                                'n_estimators': 100,
+                                'validation_fraction': 0,
+                               }, xgb_cfg),
 }
 
 # If both classifiers and regressors match MODEL_NAMES then the experiment
