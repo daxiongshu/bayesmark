@@ -8,7 +8,6 @@ from cuml.metrics import log_loss
 
 
 def cuml_get_scorer(metric, estimator, X, y):
-    
     if metric == 'mae':
         yp = estimator.predict(X)
         return -mean_absolute_error(y, yp)
@@ -41,6 +40,41 @@ def cuml_cross_val_score(clf, X, y, scoring, cv, n_jobs):
         score.append(s)
     return score
 
+class Normalizer:
+    def __init__(self):
+        pass
+
+    def fit(self, X):
+        self.mean = cp.mean(X, axis=0, keepdims=True)
+        self.std = cp.std(X, axis=0, keepdims=True)
+        return self
+
+    def transform(self, X):
+        return (X - self.mean)/self.std
+
+    def fit_transform(self, X):
+        self.fit(X)
+        return self.transform(X)
+
+class MinMax:
+    def __init__(self):
+        pass
+
+    def fit(self, X):
+        self.min_ = cp.min(X)#, axis=0, keepdims=True)
+        self.max_ = cp.max(X)#, axis=0, keepdims=True)
+        return self
+
+    def transform(self, X):
+        return (X - self.min_)/(self.max_ - self.min_)
+
+    def fit_transform(self, X):
+        self.fit(X)
+        return self.transform(X)
+
+    def inverse_transform(self, X):
+        return X*(self.max_ - self.min_) + self.min_
+
 class CumlModel(SklearnModel):
             
     
@@ -51,6 +85,15 @@ class CumlModel(SklearnModel):
         self.data_Xt = cp.asarray(self.data_Xt, dtype='float32')
         self.data_y  = cp.asarray(self.data_y, dtype='float32')
         self.data_yt = cp.asarray(self.data_yt, dtype='float32')
+
+        if model == 'SVM-cuml':
+            self.norm = Normalizer()
+            self.data_X = self.norm.fit_transform(self.data_X)
+            self.data_Xt = self.norm.transform(self.data_Xt)
+
+            self.mm = MinMax()
+            self.data_y = self.mm.fit_transform(self.data_y)
+            self.data_yt = self.mm.transform(self.data_yt)
 
         self.scorer = partial(cuml_get_scorer, metric)
         self.n_jobs = 1

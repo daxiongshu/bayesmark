@@ -216,7 +216,7 @@ MODELS_REG = {
     "kNN": (KNeighborsRegressor, {}, knn_cfg),
     "kNN-cuml": (cumlKNeighborsRegressor, {}, without(knn_cfg, ['p'])),
     "SVM": (SVR, {"kernel": "rbf"}, svm_cfg),
-    "SVM-cuml": (cumlSVR, {"kernel": "rbf"}, svm_cfg),
+    "SVM-cuml": (cumlSVR, {"kernel": "rbf", 'nochange_steps':1, 'max_iter':1000}, svm_cfg),
     "DT": (DecisionTreeRegressor, {"max_leaf_nodes": None}, dt_cfg),
     "RF": (RandomForestRegressor, {"n_estimators": 10, "max_leaf_nodes": None}, rf_cfg),
     "RF-cuml": (cumlRandomForestRegressor, {"n_estimators": 10, "max_leaves": -1}, without(rf_cfg, ["min_samples_split", "min_samples_leaf", "min_weight_fraction_leaf"])),
