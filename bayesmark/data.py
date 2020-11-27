@@ -18,9 +18,9 @@ from enum import IntEnum, auto
 import numpy as np
 import pandas as pd  # only needed for csv reader, maybe try something else
 from sklearn import datasets
-from bayesmark import big_datasets
+from bayesmark import real_datasets
 
-from bayesmark.constants import BIG_DATA_LOADER_NAMES, DATA_LOADER_NAMES, SCORERS_CLF, SCORERS_REG
+from bayesmark.constants import REAL_DATA_LOADER_NAMES, DATA_LOADER_NAMES, SCORERS_CLF, SCORERS_REG
 from bayesmark.path_util import join_safe_r
 from bayesmark.stats import robust_standardize
 
@@ -43,12 +43,14 @@ DATA_LOADERS = {
 
 assert sorted(DATA_LOADERS.keys()) == sorted(DATA_LOADER_NAMES)
 
-BIG_DATA_LOADERS = {
-    "mnist": (big_datasets.load_mnist, ProblemType.clf),
-    
+REAL_DATA_LOADERS = {
+    "mnist": (real_datasets.load_mnist, ProblemType.clf),
+    "housing": (real_datasets.load_california_housing, ProblemType.reg),
+    "hotel": (real_datasets.load_hotel_bookings, ProblemType.clf),
+    "higgs": (real_datasets.load_higgs, ProblemType.clf),
 }
 
-assert sorted(BIG_DATA_LOADERS.keys()) == sorted(BIG_DATA_LOADER_NAMES)
+assert sorted(REAL_DATA_LOADERS.keys()) == sorted(REAL_DATA_LOADER_NAMES)
 
 # Arguably, this could go in constants, but doesn't cause extra imports being here.
 METRICS_LOOKUP = {ProblemType.clf: SCORERS_CLF, ProblemType.reg: SCORERS_REG}
@@ -71,8 +73,8 @@ def get_problem_type(dataset_name):
         _, problem_type = DATA_LOADERS[dataset_name]
         return problem_type
     
-    if dataset_name in BIG_DATA_LOADERS:
-        _, problem_type = BIG_DATA_LOADERS[dataset_name]
+    if dataset_name in REAL_DATA_LOADERS:
+        _, problem_type = REAL_DATA_LOADERS[dataset_name]
         return problem_type
 
     # Maybe we can come up with a better system, but for now let's use a convention based on the naming of the csv file.
@@ -163,9 +165,11 @@ def load_data(dataset_name, data_root=None):  # pragma: io
     if dataset_name in DATA_LOADERS:
         loader_f, problem_type = DATA_LOADERS[dataset_name]
         data, target = loader_f(return_X_y=True)
-    elif dataset_name in BIG_DATA_LOADERS:
-        loader_f, problem_type = BIG_DATA_LOADERS[dataset_name]
+    elif dataset_name in REAL_DATA_LOADERS:
+        loader_f, problem_type = REAL_DATA_LOADERS[dataset_name]
         data, target = loader_f(data_root)
+        if ProblemType.clf == problem_type:
+            target = target.astype('int')
     else:  # try to load as custom csv
         assert data_root is not None, "data root cannot be None when custom csv requested."
         data, target, problem_type = _csv_loader(dataset_name, return_X_y=True, data_root=data_root)
