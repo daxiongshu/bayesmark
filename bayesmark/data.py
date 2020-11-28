@@ -44,7 +44,7 @@ DATA_LOADERS = {
 assert sorted(DATA_LOADERS.keys()) == sorted(DATA_LOADER_NAMES)
 
 REAL_DATA_LOADERS = {
-    "mnist": (real_datasets.load_mnist, ProblemType.clf),
+    #"mnist": (real_datasets.load_mnist, ProblemType.clf),
     "housing": (real_datasets.load_california_housing, ProblemType.reg),
     "hotel": (real_datasets.load_hotel_bookings, ProblemType.clf),
     "higgs": (real_datasets.load_higgs, ProblemType.clf),
